@@ -5,6 +5,7 @@ import verificationEmailTemplate from "../utils/verifyEmailTemplate.js";
 import dotenv from "dotenv";
 import generateAccesToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
+import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
 dotenv.config();
 
 export async function registerUserController(req, res) {
@@ -181,6 +182,34 @@ export async function logoutController(request, response) {
       message: "Logout successfully",
       error: false,
       success: true,
+    });
+  } catch (error) {
+    return response.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+//Upload user Avatar
+export async function uploadAvatar(request, response) {
+  try {
+    const userId = request.userId;
+    const image = request.file;
+
+    const upload = await uploadImageCloudinary(image);
+
+    const updataUser = await UserModel.findByIdAndUpdate(userId, {
+      avatar: upload.url,
+    });
+
+    return response.json({
+      message: "Upload Profile",
+      data: {
+        _id: userId,
+        avatar: upload.url,
+      },
     });
   } catch (error) {
     return response.status(500).json({
