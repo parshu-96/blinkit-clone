@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import generateAccesToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
+import generateOtp from "../utils/generateOtp.js";
+import forgotPasswordTemplate from "../utils/forgotPasswordTemplate.js";
 dotenv.config();
 
 export async function registerUserController(req, res) {
@@ -245,6 +247,48 @@ export async function updateUserDetails(request, response) {
       error: false,
       success: true,
       data: updateUser,
+    });
+  } catch (error) {
+    return response.status(500).json({
+      message: error || error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+//Forgot password not login
+export async function forgotPasswordController(request, response) {
+  try {
+    const { email } = request.body;
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return response.status(400).json({
+        message: "Email not  available",
+        error: true,
+        success: false,
+      });
+    }
+
+    const otp = generateOtp();
+
+    const expireTime = new Date() + 60 * 60 * 1000; // 1Hour
+    const update = await UserModel.findByIdAndUpdate(user._id, {
+      forgot_password_otp: otp,
+      forgot_password_expiry: new Date(expireTime).toISOString(),
+    });
+    const emailRet = await sendEmail({
+      sendTo: email,
+      subject: "Forgot Password from Blinkit",
+      html: forgotPasswordTemplate({
+        name: user.name,
+        otp: otp,
+      }),
+    });
+    return response.json({
+      message: "Check your email",
+      error: false,
+      success: true,
     });
   } catch (error) {
     return response.status(500).json({
