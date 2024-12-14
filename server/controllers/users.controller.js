@@ -219,3 +219,38 @@ export async function uploadAvatar(request, response) {
     });
   }
 }
+
+//Update User Details
+export async function updateUserDetails(request, response) {
+  try {
+    const userId = request.userId; //Auth Middleware
+    const { name, email, mobile, password } = request.body;
+    let hashPassword = "";
+    if (password) {
+      const salt = await bcryptjs.genSalt(10);
+      hashPassword = await bcryptjs.hash(password, salt);
+    }
+
+    const updateUser = await UserModel.updateOne(
+      { _id: userId },
+      {
+        ...(name && { name: name }),
+        ...(email && { email: email }),
+        ...(mobile && { mobile: mobile }),
+        ...(password && { password: hashPassword }),
+      }
+    );
+    return response.json({
+      message: "Updated user successfully",
+      error: false,
+      success: true,
+      data: updateUser,
+    });
+  } catch (error) {
+    return response.status(500).json({
+      message: error || error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
