@@ -4,7 +4,6 @@ const auth = async (request, response, next) => {
     const token =
       request.cookies.accessToken ||
       request?.header?.authorization?.split(" ")[1]; //["Bearer","token"]
-    console.log("token", token);
     if (!token) {
       return response.status(401).json({
         message: "Provide token",

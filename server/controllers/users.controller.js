@@ -3,11 +3,12 @@ import UserModel from "../models/user.model.js";
 import bcryptjs from "bcryptjs";
 import verificationEmailTemplate from "../utils/verifyEmailTemplate.js";
 import dotenv from "dotenv";
-import generateAccesToken from "../utils/generateAccessToken.js";
+import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import uploadImageCloudinary from "../utils/uploadImageCloudinary.js";
 import generateOtp from "../utils/generateOtp.js";
 import forgotPasswordTemplate from "../utils/forgotPasswordTemplate.js";
+import jwt from "jsonwebtoken";
 dotenv.config();
 
 export async function registerUserController(req, res) {
@@ -135,7 +136,7 @@ export async function LoginController(request, response) {
         success: false,
       });
     }
-    const accessToken = await generateAccesToken(user._id);
+    const accessToken = await generateAccessToken(user._id);
 
     const refreshToken = await generateRefreshToken(user._id);
 
@@ -353,7 +354,6 @@ export async function verifyForgotPasswordOTP(request, response) {
 }
 
 //Reset the password
-
 export async function resetPassword(request, response) {
   try {
     const { email, newPassword, confirmPassword } = request.body;
@@ -392,6 +392,60 @@ export async function resetPassword(request, response) {
       message: "Password Updated successfully.",
       error: false,
       success: true,
+    });
+  } catch (error) {
+    return response.status(500).json({
+      message: error || error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+//Refresh Token Controller
+export async function refreshToken(request, response) {
+  try {
+    const refreshToken =
+      request.cookies.refreshToken ||
+      request?.header?.authorization?.split(" ")[1]; //Bearer token
+    if (!refreshToken) {
+      return response.status(401).json({
+        message: "Invalid Token",
+        error: true,
+        success: false,
+      });
+    }
+    const verifyToken = await jwt.verify(
+      refreshToken,
+      process.env.SECRET_KEY_REFRESH_TOKEN
+    );
+    if (!verifyToken) {
+      return response.status(401).json({
+        message: "Token is expired",
+        error: true,
+        success: false,
+      });
+    }
+
+    const userId = verifyToken._id;
+    console.log("verify Token", verifyToken);
+    const newAccessToken = await generateAccessToken(userId);
+    console.log("New Access token", newAccessToken);
+    const cookiesOption = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    };
+
+    response.cookie("accessToken", newAccessToken, cookiesOption);
+
+    return response.json({
+      message: "New Access Token Generated",
+      error: false,
+      success: true,
+      data: {
+        accessToken: newAccessToken,
+      },
     });
   } catch (error) {
     return response.status(500).json({
