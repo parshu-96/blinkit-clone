@@ -428,9 +428,9 @@ export async function refreshToken(request, response) {
     }
 
     const userId = verifyToken._id;
-    console.log("verify Token", verifyToken);
+
     const newAccessToken = await generateAccessToken(userId);
-    console.log("New Access token", newAccessToken);
+
     const cookiesOption = {
       httpOnly: true,
       secure: true,
